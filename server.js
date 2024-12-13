@@ -12,16 +12,21 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Nodemailer Transporter Ayarları
+// Nodemailer Transporter Ayarları - Port 587 ve TLS Kullanımı
 const transporter = nodemailer.createTransport({
-  service: "gmail", // Kullanacağınız e-posta servis sağlayıcısı
+  host: "smtp.gmail.com", // SMTP sunucu adresi
+  port: 587, // TLS portu
+  secure: false, // TLS kullanımı için false
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER, // .env dosyasındaki Gmail adresiniz
+    pass: process.env.EMAIL_PASS, // .env dosyasındaki uygulama şifreniz
+  },
+  tls: {
+    rejectUnauthorized: false, // Güvenlik ayarları
   },
 });
 
-// Test için transporter'ı doğrulama
+// Transporter'ı doğrulama
 transporter.verify(function (error, success) {
   if (error) {
     console.log(error);
@@ -36,22 +41,24 @@ app.post("/send", (req, res) => {
 
   // Basit doğrulama
   if (!name || !email || !message) {
-    return res.status(400).json({ msg: "Please fill in all fields." });
+    return res.status(400).json({ msg: "Lütfen tüm alanları doldurun." });
   }
 
   const mailOptions = {
     from: email,
     to: process.env.EMAIL_USER,
-    subject: `New message from ${name}`,
+    subject: `Yeni mesaj: ${name}`,
     text: message,
   };
 
   transporter.sendMail(mailOptions, (err, data) => {
     if (err) {
       console.log("Error " + err);
-      return res.status(500).json({ msg: "Internal Server Error" });
+      return res
+        .status(500)
+        .json({ msg: "Mesaj gönderilirken bir hata oluştu." });
     }
-    return res.status(200).json({ msg: "Message Sent!" });
+    return res.status(200).json({ msg: "Mesajınız başarıyla gönderildi!" });
   });
 });
 
